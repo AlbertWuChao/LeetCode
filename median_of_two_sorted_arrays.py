@@ -32,8 +32,6 @@ class Solution(object):
             return self.mid(nums2)
         elif len(nums2) == 0:
             return self.mid(nums1)
-        elif len(nums1) == 1 and len(nums2) == 1:
-            return (float(nums1[0]) + nums2[0]) / 2
         elif nums1[-1] <= nums2[0]:
             return self.sorted(nums1, nums2)
         elif nums2[-1] <= nums1[0]:
@@ -65,6 +63,7 @@ class Solution(object):
             return arr[lg/2]
 
     def remain_end(self, arr1, left1, arr2, left2):
+        # print 'remain_end'
         type_len = (len(arr1) + len(arr2)) % 2
 
         l11 = left1 + 1
@@ -78,33 +77,54 @@ class Solution(object):
             else:
                 v2 = arr1[l11] if arr1[l11] < arr2[l22] else arr2[l22]
             v1 = arr1[left1] if arr1[left1] > arr2[left2] else arr2[left2]
-            return v1 if v1 < v2 else v2
+            rs = v1 if v1 < v2 else v2
+            # print 'ji rs: %d' % rs
+            return rs
         # 偶数长度
         v1 = arr1[left1]
         v2 = arr2[left2]
+        if v1 > v2:
+            t = v1
+            v1 = v2
+            v2 = t
         if l11 >= len(arr1):
-            if arr2[l22] < v1: v1 = arr2[l22]
+            if arr2[l22] < v2: v2 = arr2[l22]
         elif l22 >= len(arr2):
             if arr1[l11] < v2: v2 = arr1[l11]
         else:
-            if arr2[l22] < v1: v1 = arr2[l22]
-            if arr1[l11] < v2: v2 = arr1[l11]
+            vv1 = arr1[l11]
+            vv2 = arr2[l22]
+            if vv1 > vv2: vv1 = vv2
+            if v2 > vv1: v2 = vv1
+        rs = (float(v1) + v2) / 2
+        # print 'ou rs: %d' % rs
+        return rs
 
-        return (float(v1) + v2) / 2
-
-    def in_one_end(self, arr, left, remain, type_len, max1):
+    def in_one_end(self, arr1, arr2):
         '''
         确定值在一个列表内
         len(all)奇数 ==> arr[left + remain]
         len(all)偶数 ==> (arr[left + remain] + arr[left + remain - 1]) / 2
         '''
+        all_len = len(arr1) + len(arr2)
+        mid = all_len / 2
+        type_len = all_len % 2
+        index = mid - len(arr1)
         if type_len == 1:
-            return arr[left + remain]
+            rs = arr2[index]
+            # print 'ji one: %d' % rs
+            return rs
         else:
-            v1 = max1
-            v2 = arr[left + remain]
-            if arr[left + remain - 1] > v1: v1 = arr[left + remain - 1]
-            return (float(v1) + v2) / 2
+            v2 = arr2[index]
+            if index == 0:
+                v1 = arr1[-1]
+            else:
+                v11 = arr1[-1]
+                v12 = arr2[index - 1]
+                v1 = v11 if v11 >= v12 else v12
+            rs = (float(v1) + v2) / 2
+            # print 'ji double: %d' % rs
+            return rs
 
     def binaryExclude(self, arr1, left1, arr2, left2, remain):
         '''
@@ -119,32 +139,71 @@ class Solution(object):
         # 剩余长度较短的数组放前面
         if len(arr1) - left1 > len(arr2) - left2:
             return self.binaryExclude(arr2, left2, arr1, left1, remain)
-        if remain < 2:
-            assert remain == 1
-            return self.remain_end(arr1, left1, arr2, left2)
         mid1 = left1 + (remain / 2)
         mid2 = left2 + (remain / 2)
+        # 如果arr1长度不够
+        # 确定中值在arr2中
+        if mid1 >= len(arr1) and arr1[-1] <= arr2[mid2]:
+            return self.in_one_end(arr1, arr2)
+        if remain < 2:
+            return self.remain_end(arr1, left1, arr2, left2)
+        mid1 -= 1
+        mid2 -= 1
 
         # 如果arr1长度不够
-        if mid1 >= len(arr1):
-            max1 = arr1[-1]
-            if max1 <= arr2[mid2]:
-                # 确定中值在arr2中
-                return self.in_one_end(arr2, left2, remain - len(arr1), (len(arr1) + len(arr2)) % 2, max1)
-            else:
-                return self.binaryExclude(arr1, left1, arr2, mid2, remain + left2 - mid2)
+        if mid1 >= len(arr1) and arr1[-1] > arr2[mid2]:
+            return self.binaryExclude(arr1, left1, arr2, mid2 + 1, remain + left2 - mid2 - 1)
         # 如果arr1长度足够
         if arr1[mid1] < arr2[mid2]:
-            return self.binaryExclude(arr1, mid1, arr2, left2, remain + left1 - mid1)
+            return self.binaryExclude(arr1, mid1 + 1, arr2, left2, remain + left1 - mid1 - 1)
         else:
-            return self.binaryExclude(arr1, left1, arr2, mid2, remain + left2 - mid2)
-        
+            return self.binaryExclude(arr1, left1, arr2, mid2 + 1, remain + left2 - mid2 - 1)
+
+def assert_true(solu):
+    ns1 = [2, 6]
+    ns2 = [1,3,4,5]
+    assert solu.findMedianSortedArrays(ns1, ns2) == 3.5
+
+    ns1 = [2]
+    ns2 = [1,3,4,5]
+    assert solu.findMedianSortedArrays(ns1, ns2) == 3
+
+    ns1 = [2]
+    ns2 = [1,3,4,5,6]
+    assert solu.findMedianSortedArrays(ns1, ns2) == 3.5
+
+    ns1 = [2]
+    ns2 = [1,3,4]
+    assert solu.findMedianSortedArrays(ns1, ns2) == 2.5
+
+    ns1 = [1, 2]
+    ns2 = [1, 2]
+    assert solu.findMedianSortedArrays(ns1, ns2) == 1.5
+
+    ns1 = [1]
+    ns2 = [1]
+    assert solu.findMedianSortedArrays(ns1, ns2) == 1
+
+    ns1 = [1,3]
+    ns2 = [2,4,5,6]
+    assert solu.findMedianSortedArrays(ns1, ns2) == 3.5
+    
+    ns1 = [1, 2, 2]
+    ns2 = [1, 2, 3]
+    assert solu.findMedianSortedArrays(ns1, ns2) == 2
+    
+    ns1 = [4, 5]
+    ns2 = [1, 2, 3, 6]
+    assert solu.findMedianSortedArrays(ns1, ns2) == 3.5
+
 if __name__ == '__main__':
     solu = Solution()
-    nums1 = [2, 6]
-    nums2 = [1, 3, 4, 5]
+
+    ns1 = [0,12]
+    ns2 = [2,4]
     import time
     t1 = long(time.time() * 1000)
-    print solu.findMedianSortedArrays(nums1, nums2)
+    print solu.findMedianSortedArrays(ns1, ns2)
     t2 = long(time.time() * 1000)
     print t2 - t1
+    assert_true(solu)
